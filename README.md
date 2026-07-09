@@ -28,7 +28,7 @@ npm install
 Copia `.env.example` como `.env.local` y configura:
 
 ```env
-WHATSAPP_API_URL=https://api-what.cmlsolutions.tech/api
+WHATSAPP_API_URL=https://tu-api-de-whatsapp.com/api
 WHATSAPP_API_KEY=clave-del-backend
 ADMIN_EMAIL=correo-del-administrador
 ADMIN_PASSWORD=contraseña-segura
