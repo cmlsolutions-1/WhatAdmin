@@ -1,0 +1,24 @@
+# Dependencies
+/node_modules
+
+# Next.js
+/.next
+/out
+
+# Builds anteriores
+/dist
+
+# Variables privadas
+.env
+.env.*
+!.env.example
+
+# Vercel
+.vercel
+
+# Sistema y editores
+.DS_Store
+*.log
+*.tsbuildinfo
+.idea
+.vscode
