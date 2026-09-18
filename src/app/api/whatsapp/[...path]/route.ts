@@ -9,7 +9,7 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
 
   const { path } = await context.params;
   const target = `${apiUrl}/${path.join("/")}${request.nextUrl.search}`;
-  const body = ["GET", "HEAD"].includes(request.method) ? undefined : await request.text();
+  const body = ["GET", "HEAD", "DELETE"].includes(request.method) ? undefined : await request.text();
 
   try {
     const response = await fetch(target, {
@@ -29,3 +29,4 @@ async function proxy(request: NextRequest, context: { params: Promise<{ path: st
 
 export const GET = proxy;
 export const POST = proxy;
+export const DELETE = proxy;

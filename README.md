@@ -9,6 +9,7 @@ Panel administrativo en Next.js para gestionar los emisores y sesiones de la API
 - Inicio de conexión y visualización del código QR.
 - Actualización automática del estado cada cinco segundos mientras se conecta.
 - Desconexión de sesiones.
+- Eliminación de líneas desconectadas mediante la API.
 - Envío de notificaciones de prueba.
 - Proxy del servidor: la API key nunca se expone al navegador.
 
