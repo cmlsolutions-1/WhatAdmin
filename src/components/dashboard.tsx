@@ -2,7 +2,7 @@
 /* eslint-disable @next/next/no-img-element -- El QR se genera como data URL en el navegador. */
 
 import { FormEvent, useCallback, useEffect, useState } from "react";
-import { AlertCircle, CheckCircle2, LogOut, MessageCircleMore, Plus, RefreshCw, Send, Smartphone, Trash2, Unplug, X } from "lucide-react";
+import { AlertCircle, CheckCircle2, Copy, Link2, LogOut, MessageCircleMore, Plus, RefreshCw, Send, Smartphone, Trash2, Unplug, X } from "lucide-react";
 import QRCode from "qrcode";
 import { useRouter } from "next/navigation";
 import { panelRequest, PanelRequestError, Sender, SenderStatus } from "@/lib/whatsapp";
@@ -12,7 +12,16 @@ const labels: Record<string, string> = {
   disconnected: "Desconectada",
   initializing: "Iniciando",
   qr: "Esperando QR",
+  reconnecting: "Reconectando",
+  needs_reauth: "Requiere QR",
+  logged_out: "Sesión cerrada",
 };
+
+interface PairingLink {
+  url: string;
+  expiresAt: string;
+  sender: { id: number; displayName: string; phoneNumber: string };
+}
 
 export default function Dashboard() {
   const router = useRouter();
@@ -22,6 +31,8 @@ export default function Dashboard() {
   const [createOpen, setCreateOpen] = useState(false);
   const [sendOpen, setSendOpen] = useState(false);
   const [connection, setConnection] = useState<SenderStatus | null>(null);
+  const [pairingLink, setPairingLink] = useState<PairingLink | null>(null);
+  const [copyState, setCopyState] = useState<"idle" | "copied" | "failed">("idle");
   const [qrImage, setQrImage] = useState<{ value: string; image: string } | null>(null);
   const [connectionError, setConnectionError] = useState("");
   const [busy, setBusy] = useState(false);
@@ -111,6 +122,27 @@ export default function Dashboard() {
       loadSenders();
     } catch (cause) { setNotice(cause instanceof Error ? `No se pudo desconectar: ${cause.message}` : "No se pudo desconectar"); }
     finally { setBusy(false); }
+  }
+
+  async function createPairingLink(sender: Sender) {
+    setBusy(true);
+    try {
+      const link = await panelRequest<PairingLink>(`senders/${sender.id}/pairing-link`, { method: "POST" });
+      setPairingLink(link);
+      setCopyState("idle");
+    } catch (cause) {
+      setNotice(cause instanceof Error ? `No se pudo crear el enlace: ${cause.message}` : "No se pudo crear el enlace");
+    } finally { setBusy(false); }
+  }
+
+  async function copyPairingLink() {
+    if (!pairingLink) return;
+    try {
+      await navigator.clipboard.writeText(pairingLink.url);
+      setCopyState("copied");
+    } catch {
+      setCopyState("failed");
+    }
   }
 
   async function deleteSender(sender: Sender) {
@@ -209,6 +241,7 @@ export default function Dashboard() {
               {sender.lastDisconnectReason && <p className="reason"><AlertCircle size={13} />{sender.lastDisconnectReason}</p>}
               <div className="card-footer">
                 <button className="connect" onClick={() => sender.status === "disconnected" ? connect(sender) : showStatus(sender)} disabled={busy}>{sender.status === "disconnected" ? sender.lastDisconnectReason === "initialize_failed" ? "Restablecer y generar QR" : "Reconectar y generar QR" : sender.status === "qr" ? "Ver QR" : "Ver estado"}</button>
+                {sender.status !== "connected" && <button className="pairing-link-button" onClick={() => createPairingLink(sender)} disabled={busy}><Link2 size={15} />Crear enlace para el cliente</button>}
                 <button className="danger-icon" title="Desconectar" aria-label={`Desconectar ${sender.displayName}`} onClick={() => disconnect(sender)} disabled={busy}><Unplug size={16} />Desconectar</button>
                 {sender.status === "disconnected" && <button className="danger-icon delete-button" title="Eliminar línea" aria-label={`Eliminar ${sender.displayName}`} onClick={() => deleteSender(sender)} disabled={busy}><Trash2 size={15} />Eliminar</button>}
               </div>
@@ -232,6 +265,17 @@ export default function Dashboard() {
           <label>Mensaje<textarea name="message" required placeholder="Escribe una notificación de prueba…" /></label>
           <div className="modal-actions"><button type="button" className="secondary" onClick={() => setSendOpen(false)}>Cancelar</button><button className="primary" disabled={busy}><Send size={15} />{busy ? "Enviando…" : "Enviar"}</button></div>
         </form>
+      </Modal>}
+
+      {pairingLink && <Modal close={() => setPairingLink(null)} title="Enlace para el cliente" description={`${pairingLink.sender.displayName} · ${pairingLink.sender.phoneNumber}`}>
+        <div className="pairing-link-content">
+          <p>Comparte este enlace con el cliente para que pueda vincular la línea desde su teléfono. Crear uno nuevo para esta línea invalidará este enlace.</p>
+          <label htmlFor="pairing-url">Enlace temporal</label>
+          <input id="pairing-url" value={pairingLink.url} readOnly onFocus={(event) => event.currentTarget.select()} />
+          <small>Vence el {new Intl.DateTimeFormat("es-CO", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Bogota" }).format(new Date(pairingLink.expiresAt))} · hora de Colombia.</small>
+          {copyState === "failed" && <p role="alert" className="pairing-copy-error">No se pudo copiar automáticamente. Selecciona el enlace de arriba y cópialo.</p>}
+          <div className="modal-actions"><button className="secondary" onClick={() => setPairingLink(null)}>Cerrar</button><button className="primary" onClick={copyPairingLink}><Copy size={15} />{copyState === "copied" ? "Enlace copiado" : "Copiar enlace"}</button></div>
+        </div>
       </Modal>}
 
       {connection && <Modal close={() => { setConnection(null); setQrImage(null); setConnectionError(""); }} title={connection.sender.displayName} description={connection.sender.phoneNumber}>

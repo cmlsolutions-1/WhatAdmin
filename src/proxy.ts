@@ -8,7 +8,20 @@ async function expectedToken() {
 }
 
 export async function proxy(request: NextRequest) {
-  const isLogin = request.nextUrl.pathname === "/login";
+  const pathname = request.nextUrl.pathname;
+  const isLogin = pathname === "/login";
+  const isPublicPairing =
+    pathname.startsWith("/vincular-whatsapp/") ||
+    pathname.startsWith("/api/public/pairing/");
+
+  if (isPublicPairing) {
+    const response = NextResponse.next();
+    response.headers.set("Referrer-Policy", "no-referrer");
+    response.headers.set("X-Robots-Tag", "noindex, nofollow");
+    response.headers.set("Cache-Control", "no-store");
+    return response;
+  }
+
   const token = request.cookies.get(SESSION_COOKIE)?.value;
   const authenticated = Boolean(token && token === await expectedToken());
 

@@ -12,6 +12,7 @@ Panel administrativo en Next.js para gestionar los emisores y sesiones de la API
 - Eliminación de líneas desconectadas mediante la API.
 - Envío de notificaciones de prueba.
 - Proxy del servidor: la API key nunca se expone al navegador.
+- Enlaces temporales para que el cliente vincule su línea desde `/vincular-whatsapp/[token]`.
 
 ## Requisitos
 
@@ -56,3 +57,7 @@ npm run dev
 4. Despliega el proyecto.
 
 No agregues `.env.local` al repositorio.
+
+## Vinculación pública
+
+En el panel, usa **Crear enlace para el cliente** en una línea sin conectar y copia la URL resultante. La página pública consulta y conecta mediante `/api/public/pairing/[token]`; ese proxy usa `WHATSAPP_API_URL` y no envía la API key. El enlace vence según `PAIRING_LINK_TTL_MINUTES`, configurado en el backend. En el backend, `PAIRING_FRONTEND_BASE_URL` debe apuntar a la URL pública de este frontend terminada en `/vincular-whatsapp`.
